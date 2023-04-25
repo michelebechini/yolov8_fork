@@ -1,0 +1,2 @@
+test note to do 1st commit.
+This txt file will be used to save notes.
