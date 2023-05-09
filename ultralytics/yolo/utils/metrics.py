@@ -398,7 +398,7 @@ def plot_pr_curve_v2(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()):
     ax.set_ylim(0.7, 1)
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     fig.savefig(save_dir, dpi=250)
-    plt.close()
+    plt.close(fig)
 
 @plt_settings()
 def plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()):
@@ -422,7 +422,7 @@ def plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()
     ax.set_ylim(0.95, 1)
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     fig.savefig(save_dir, dpi=250)
-    plt.close()
+    plt.close(fig)
 
 
 
