@@ -96,8 +96,18 @@ class PoseValidator(DetectionValidator):
                 labelsn = torch.cat((cls, tbox), 1)  # native-space labels
                 correct_bboxes = self._process_batch(predn[:, :6], labelsn)
                 correct_kpts = self._process_batch(predn[:, :6], labelsn, pred_kpts, tkpts)
+
                 if self.args.plots:
                     self.confusion_matrix.process_batch(predn, labelsn)
+
+            # get OKS for correct keypoints
+            # `0.53` is from https://github.com/jin-s13/xtcocoapi/blob/master/xtcocotools/cocoeval.py#L384
+            check_area = ops.xyxy2xywh(labelsn[:, 1:])[:, 2:].prod(1) * 0.53 
+            correct_oks = kpt_iou(tkpts, pred_kpts, sigma=self.sigma, area=check_area).detach().to('cpu').numpy()
+            # correct oks has shape (N, M) where N are the number of correct kp and M the number of gt kp.
+            # The correct OKS for matching kp should be the highest value in each row. Hence a metric is the
+            # mean value of the highest value in each row.
+            self.oks_set.append(np.mean(np.max(correct_oks, axis=1)))
 
             # Append correct_masks, correct_boxes, pconf, pcls, tcls
             self.stats.append((correct_bboxes, correct_kpts, pred[:, 4], pred[:, 5], cls.squeeze(-1)))
@@ -126,6 +136,10 @@ class PoseValidator(DetectionValidator):
             # `0.53` is from https://github.com/jin-s13/xtcocoapi/blob/master/xtcocotools/cocoeval.py#L384
             area = ops.xyxy2xywh(labels[:, 1:])[:, 2:].prod(1) * 0.53
             iou = kpt_iou(gt_kpts, pred_kpts, sigma=self.sigma, area=area)
+
+            # oks = kpt_iou(gt_kpts, pred_kpts, sigma=self.sigma, area=area).detach().to('cpu').numpy()
+            # self.oks_set.append(oks.max())
+
         else:  # boxes
             iou = box_iou(labels[:, 1:], detections[:, :4])
 

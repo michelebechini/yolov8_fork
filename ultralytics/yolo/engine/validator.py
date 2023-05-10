@@ -77,6 +77,7 @@ class BaseValidator:
         self.speed = {'preprocess': 0.0, 'inference': 0.0, 'loss': 0.0, 'postprocess': 0.0}
         self.jdict = None
         self.iou_set = None
+        self.oks_set = None
 
         project = self.args.project or Path(SETTINGS['runs_dir']) / self.args.task
         name = self.args.name or f'{self.args.mode}'
@@ -150,6 +151,7 @@ class BaseValidator:
         self.init_metrics(de_parallel(model))
         self.jdict = []  # empty before each val
         self.iou_set = []
+        self.oks_set = []
         for batch_i, batch in enumerate(bar):
             self.run_callbacks('on_val_batch_start')
             self.batch_i = batch_i
@@ -186,6 +188,15 @@ class BaseValidator:
         print('\nIoU min: ' + str((np.asarray(self.iou_set).min())) + '\n')
         print('\nIoU max: ' + str((np.asarray(self.iou_set).max())) + '\n')
 
+        # Show OKS informations
+        print('\n\n')
+        print('OKS informations on the set:\n')
+        print('\nOKS number: ' + str(len(self.oks_set)) + '\n')
+        print('\nOKS mean: ' + str(np.mean(self.oks_set)) + '\n')
+        print('\nOKS median: ' + str((np.asarray(self.oks_set).max() + np.asarray(self.oks_set).min())/2) + '\n')
+        print('\nOKS min: ' + str((np.asarray(self.oks_set).min())) + '\n')
+        print('\nOKS max: ' + str((np.asarray(self.oks_set).max())) + '\n')
+
         #plot histogram of distribution of IoU
         fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
         ax.hist(self.iou_set, bins=100, edgecolor='black')
@@ -197,6 +208,19 @@ class BaseValidator:
         #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
 
         fig.savefig(self.save_dir / 'hist_IoU.png', dpi=250)
+        plt.close()
+
+        #plot histogram of distribution of IoU
+        fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
+        ax.hist(self.oks_set, bins=100, edgecolor='black')
+        ax.set_xlabel('OKS')
+        ax.set_ylabel('Counts')
+        ax.grid(linewidth=0.5)
+        #ax.set_xlim(0, 1)
+        #ax.set_ylim(0, 1)
+        #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+
+        fig.savefig(self.save_dir / 'hist_OKS.png', dpi=250)
         plt.close()
 
         stats = self.get_stats()
