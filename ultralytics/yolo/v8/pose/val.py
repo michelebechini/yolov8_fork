@@ -102,6 +102,9 @@ class PoseValidator(DetectionValidator):
             # Append correct_masks, correct_boxes, pconf, pcls, tcls
             self.stats.append((correct_bboxes, correct_kpts, pred[:, 4], pred[:, 5], cls.squeeze(-1)))
 
+            iou = box_iou(labelsn[:, 1:], predn[:, :4]).detach().to('cpu').numpy()  # native-space labels
+            self.iou_set.append(iou.max())
+
             # Save
             if self.args.save_json:
                 self.pred_to_json(predn, batch['im_file'][si])
