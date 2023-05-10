@@ -580,11 +580,19 @@ class Albumentations:
         """Initialize the transform object for YOLO bbox formatted params."""
         self.p = p
         self.transform = None
+        self.transform_aa = None
         prefix = colorstr('albumentations: ')
         try:
             import albumentations as A
 
             check_version(A.__version__, '1.0.3', hard=True)  # version requirement
+
+            T_always_app = [
+            #   A.GaussNoise(var_limit=(0.0021*255, 0.0023*255), mean=0, per_channel=False, always_apply=True),
+              A.GaussianBlur(blur_limit=(3, 7), sigma_limit=(10, 255), always_apply=True),
+              A.GaussNoise(var_limit=(0.1*255, 1.0*255), mean=0, per_channel=True, always_apply=True)
+            ]
+            self.transform_aa = A.Compose(T_always_app)
 
             T = [
                 A.Blur(p=0.01),
@@ -611,6 +619,9 @@ class Albumentations:
             labels['instances'].normalize(*im.shape[:2][::-1])
             bboxes = labels['instances'].bboxes
             # TODO: add supports of segments and keypoints
+            if self.transform_aa:
+                speed_img = self.transform_aa(image=im)  # transformed
+                im = speed_img['image']
             if self.transform and random.random() < self.p:
                 new = self.transform(image=im, bboxes=bboxes, class_labels=cls)  # transformed
                 if len(new['class_labels']) > 0:  # skip update if no bbox in new im
