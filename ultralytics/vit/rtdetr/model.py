@@ -8,8 +8,9 @@ from pathlib import Path
 from ultralytics.nn.tasks import DetectionModel, attempt_load_one_weight, yaml_model_load
 from ultralytics.yolo.cfg import get_cfg
 from ultralytics.yolo.engine.exporter import Exporter
-from ultralytics.yolo.utils import DEFAULT_CFG, DEFAULT_CFG_DICT
+from ultralytics.yolo.utils import DEFAULT_CFG, DEFAULT_CFG_DICT, LOGGER, ROOT, is_git_dir
 from ultralytics.yolo.utils.checks import check_imgsz
+from ultralytics.yolo.utils.torch_utils import model_info
 
 from ...yolo.utils.torch_utils import smart_inference_mode
 from .predict import RTDETRPredictor
@@ -46,7 +47,7 @@ class RTDETR:
         self.task = self.model.args['task']
 
     @smart_inference_mode()
-    def predict(self, source, stream=False, **kwargs):
+    def predict(self, source=None, stream=False, **kwargs):
         """
         Perform prediction using the YOLO model.
 
@@ -60,6 +61,9 @@ class RTDETR:
         Returns:
             (List[ultralytics.yolo.engine.results.Results]): The prediction results.
         """
+        if source is None:
+            source = ROOT / 'assets' if is_git_dir() else 'https://ultralytics.com/images/bus.jpg'
+            LOGGER.warning(f"WARNING ⚠️ 'source' is missing. Using 'source={source}'.")
         overrides = dict(conf=0.25, task='detect', mode='predict')
         overrides.update(kwargs)  # prefer kwargs
         if not self.predictor:
@@ -83,6 +87,10 @@ class RTDETR:
         validator(model=self.model)
         self.metrics = validator.metrics
         return validator.metrics
+
+    def info(self, verbose=True):
+        """Get model info"""
+        return model_info(self.model, verbose=verbose)
 
     @smart_inference_mode()
     def export(self, **kwargs):
