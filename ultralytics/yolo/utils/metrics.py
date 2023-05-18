@@ -300,7 +300,7 @@ class ConfusionMatrix:
 
     @TryExcept('WARNING ⚠️ ConfusionMatrix plot failure')
     @plt_settings()
-    def plot(self, normalize=True, save_dir='', names=()):
+    def plot(self, normalize=True, save_dir='', names=(), on_plot=None):
         """
         Plot the confusion matrix using seaborn and save it to a file.
 
@@ -308,6 +308,7 @@ class ConfusionMatrix:
             normalize (bool): Whether to normalize the confusion matrix.
             save_dir (str): Directory where the plot will be saved.
             names (tuple): Names of classes, used as labels on the plot.
+            on_plot (func): An optional callback to pass plots path and data when they are rendered.
         """
         import seaborn as sn
 
@@ -336,8 +337,11 @@ class ConfusionMatrix:
         ax.set_xlabel('True')
         ax.set_ylabel('Predicted')
         ax.set_title(title)
-        fig.savefig(Path(save_dir) / f'{title.lower().replace(" ", "_")}.png', dpi=250)
+        plot_fname = Path(save_dir) / f'{title.lower().replace(" ", "_")}.png'
+        fig.savefig(plot_fname, dpi=250)
         plt.close(fig)
+        if on_plot:
+            on_plot(plot_fname)
 
     def print(self):
         """
@@ -356,7 +360,7 @@ def smooth(y, f=0.05):
 
 
 @plt_settings()
-def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
+def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=(), on_plot=None):
     """Plots a precision-recall curve."""
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
     py = np.stack(py, axis=1)
@@ -376,9 +380,11 @@ def plot_pr_curve(px, py, ap, save_dir=Path('pr_curve.png'), names=()):
     ax.set_title('Precision-Recall Curve')
     fig.savefig(save_dir, dpi=250)
     plt.close(fig)
+    if on_plot:
+        on_plot(save_dir)
 
 @plt_settings()
-def plot_pr_curve_v2(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()):
+def plot_pr_curve_v2(px, ppy, ap, save_dir=Path('pr_curve.png'), names=(), on_plot=None):
     # Precision-recall curve
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
     ppy_arr = np.asarray(ppy)
@@ -400,9 +406,11 @@ def plot_pr_curve_v2(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()):
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     fig.savefig(save_dir, dpi=250)
     plt.close(fig)
+    if on_plot:
+        on_plot(save_dir)
 
 @plt_settings()
-def plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()):
+def plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir=Path('pr_curve.png'), names=(), on_plot=None):
     # Precision-recall curve
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
     ppy_arr = np.asarray(ppy)
@@ -424,11 +432,13 @@ def plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir=Path('pr_curve.png'), names=()
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     fig.savefig(save_dir, dpi=250)
     plt.close(fig)
+    if on_plot:
+        on_plot(save_dir)
 
 
 
 @plt_settings()
-def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confidence', ylabel='Metric'):
+def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confidence', ylabel='Metric', on_plot=None):
     """Plots a metric-confidence curve."""
     fig, ax = plt.subplots(1, 1, figsize=(9, 6), tight_layout=True)
 
@@ -448,6 +458,8 @@ def plot_mc_curve(px, py, save_dir=Path('mc_curve.png'), names=(), xlabel='Confi
     ax.set_title(f'{ylabel}-Confidence Curve')
     fig.savefig(save_dir, dpi=250)
     plt.close(fig)
+    if on_plot:
+        on_plot(save_dir)
 
 
 def compute_ap(recall, precision):
@@ -483,7 +495,16 @@ def compute_ap(recall, precision):
     return ap, mpre, mrec
 
 
-def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir=Path(), names=(), eps=1e-16, prefix=''):
+def ap_per_class(tp,
+                 conf,
+                 pred_cls,
+                 target_cls,
+                 plot=False,
+                 on_plot=None,
+                 save_dir=Path(),
+                 names=(),
+                 eps=1e-16,
+                 prefix=''):
     """
     Computes the average precision per class for object detection evaluation.
 
@@ -493,6 +514,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir=Path(), na
         pred_cls (np.ndarray): Array of predicted classes of the detections.
         target_cls (np.ndarray): Array of true classes of the detections.
         plot (bool, optional): Whether to plot PR curves or not. Defaults to False.
+        on_plot (func, optional): A callback to pass plots path and data when they are rendered. Defaults to None.
         save_dir (Path, optional): Directory to save the PR curves. Defaults to an empty path.
         names (tuple, optional): Tuple of class names to plot PR curves. Defaults to an empty tuple.
         eps (float, optional): A small value to avoid division by zero. Defaults to 1e-16.
@@ -553,12 +575,12 @@ def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir=Path(), na
     names = [v for k, v in names.items() if k in unique_classes]  # list: only classes that have data
     names = dict(enumerate(names))  # to dict
     if plot:
-        plot_pr_curve(px, py, ap, save_dir / f'{prefix}PR_curve.png', names)
-        plot_pr_curve_v2(px, ppy, ap, save_dir / f'{prefix}PR_curve_v2.png', names)
-        plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir / f'{prefix}PR_curve_v2_zoomed.png', names)
-        plot_mc_curve(px, f1, save_dir / f'{prefix}F1_curve.png', names, ylabel='F1')
-        plot_mc_curve(px, p, save_dir / f'{prefix}P_curve.png', names, ylabel='Precision')
-        plot_mc_curve(px, r, save_dir / f'{prefix}R_curve.png', names, ylabel='Recall')
+        plot_pr_curve(px, py, ap, save_dir / f'{prefix}PR_curve.png', names, on_plot=on_plot)
+        plot_pr_curve_v2(px, ppy, ap, save_dir / f'{prefix}PR_curve_v2.png', names, on_plot=on_plot)
+        plot_pr_curve_v2_zoomed(px, ppy, ap, save_dir / f'{prefix}PR_curve_v2_zoomed.png', names, on_plot=on_plot)
+        plot_mc_curve(px, f1, save_dir / f'{prefix}F1_curve.png', names, ylabel='F1', on_plot=on_plot)
+        plot_mc_curve(px, p, save_dir / f'{prefix}P_curve.png', names, ylabel='Precision', on_plot=on_plot)
+        plot_mc_curve(px, r, save_dir / f'{prefix}R_curve.png', names, ylabel='Recall', on_plot=on_plot)
 
     i = smooth(f1.mean(0), 0.1).argmax()  # max F1 index
     p, r, f1 = p[:, i], r[:, i], f1[:, i]
@@ -710,11 +732,13 @@ class DetMetrics(SimpleClass):
     Args:
         save_dir (Path): A path to the directory where the output plots will be saved. Defaults to current directory.
         plot (bool): A flag that indicates whether to plot precision-recall curves for each class. Defaults to False.
+        on_plot (func): An optional callback to pass plots path and data when they are rendered. Defaults to None.
         names (tuple of str): A tuple of strings that represents the names of the classes. Defaults to an empty tuple.
 
     Attributes:
         save_dir (Path): A path to the directory where the output plots will be saved.
         plot (bool): A flag that indicates whether to plot the precision-recall curves for each class.
+        on_plot (func): An optional callback to pass plots path and data when they are rendered.
         names (tuple of str): A tuple of strings that represents the names of the classes.
         box (Metric): An instance of the Metric class for storing the results of the detection metrics.
         speed (dict): A dictionary for storing the execution time of different parts of the detection process.
@@ -730,9 +754,10 @@ class DetMetrics(SimpleClass):
         results_dict: Returns a dictionary that maps detection metric keys to their computed values.
     """
 
-    def __init__(self, save_dir=Path('.'), plot=False, names=()) -> None:
+    def __init__(self, save_dir=Path('.'), plot=False, on_plot=None, names=()) -> None:
         self.save_dir = save_dir
         self.plot = plot
+        self.on_plot = on_plot
         self.names = names
         self.box = Metric()
         self.speed = {'preprocess': 0.0, 'inference': 0.0, 'loss': 0.0, 'postprocess': 0.0}
@@ -785,11 +810,13 @@ class SegmentMetrics(SimpleClass):
     Args:
         save_dir (Path): Path to the directory where the output plots should be saved. Default is the current directory.
         plot (bool): Whether to save the detection and segmentation plots. Default is False.
+        on_plot (func): An optional callback to pass plots path and data when they are rendered. Defaults to None.
         names (list): List of class names. Default is an empty list.
 
     Attributes:
         save_dir (Path): Path to the directory where the output plots should be saved.
         plot (bool): Whether to save the detection and segmentation plots.
+        on_plot (func): An optional callback to pass plots path and data when they are rendered.
         names (list): List of class names.
         box (Metric): An instance of the Metric class to calculate box detection metrics.
         seg (Metric): An instance of the Metric class to calculate mask segmentation metrics.
@@ -805,9 +832,10 @@ class SegmentMetrics(SimpleClass):
         results_dict: Returns the dictionary containing all the detection and segmentation metrics and fitness score.
     """
 
-    def __init__(self, save_dir=Path('.'), plot=False, names=()) -> None:
+    def __init__(self, save_dir=Path('.'), plot=False, on_plot=None, names=()) -> None:
         self.save_dir = save_dir
         self.plot = plot
+        self.on_plot = on_plot
         self.names = names
         self.box = Metric()
         self.seg = Metric()
@@ -830,6 +858,7 @@ class SegmentMetrics(SimpleClass):
                                     pred_cls,
                                     target_cls,
                                     plot=self.plot,
+                                    on_plot=self.on_plot,
                                     save_dir=self.save_dir,
                                     names=self.names,
                                     prefix='Mask')[2:]
@@ -840,6 +869,7 @@ class SegmentMetrics(SimpleClass):
                                    pred_cls,
                                    target_cls,
                                    plot=self.plot,
+                                   on_plot=self.on_plot,
                                    save_dir=self.save_dir,
                                    names=self.names,
                                    prefix='Box')[2:]
@@ -889,11 +919,13 @@ class PoseMetrics(SegmentMetrics):
     Args:
         save_dir (Path): Path to the directory where the output plots should be saved. Default is the current directory.
         plot (bool): Whether to save the detection and segmentation plots. Default is False.
+        on_plot (func): An optional callback to pass plots path and data when they are rendered. Defaults to None.
         names (list): List of class names. Default is an empty list.
 
     Attributes:
         save_dir (Path): Path to the directory where the output plots should be saved.
         plot (bool): Whether to save the detection and segmentation plots.
+        on_plot (func): An optional callback to pass plots path and data when they are rendered.
         names (list): List of class names.
         box (Metric): An instance of the Metric class to calculate box detection metrics.
         pose (Metric): An instance of the Metric class to calculate mask segmentation metrics.
@@ -909,10 +941,11 @@ class PoseMetrics(SegmentMetrics):
         results_dict: Returns the dictionary containing all the detection and segmentation metrics and fitness score.
     """
 
-    def __init__(self, save_dir=Path('.'), plot=False, names=()) -> None:
+    def __init__(self, save_dir=Path('.'), plot=False, on_plot=None, names=()) -> None:
         super().__init__(save_dir, plot, names)
         self.save_dir = save_dir
         self.plot = plot
+        self.on_plot = on_plot
         self.names = names
         self.box = Metric()
         self.pose = Metric()
@@ -940,6 +973,7 @@ class PoseMetrics(SegmentMetrics):
                                     pred_cls,
                                     target_cls,
                                     plot=self.plot,
+                                    on_plot=self.on_plot,
                                     save_dir=self.save_dir,
                                     names=self.names,
                                     prefix='Pose')[2:]
@@ -950,6 +984,7 @@ class PoseMetrics(SegmentMetrics):
                                    pred_cls,
                                    target_cls,
                                    plot=self.plot,
+                                   on_plot=self.on_plot,
                                    save_dir=self.save_dir,
                                    names=self.names,
                                    prefix='Box')[2:]
