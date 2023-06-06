@@ -1,2 +1,8 @@
 test note to do 1st commit.
 This txt file will be used to save notes.
+
+
+- to modify OKS sigmas remember to update both metrics/loss and valid.py in pose folder
+- to return to the old version of mosaic augmentation images modify the buffer to False in augment.py 
+  in get_indexes() header (line 141) such that the images are randomly selected from the full dataset
+  and not only from the buffer
