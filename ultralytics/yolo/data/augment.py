@@ -138,7 +138,7 @@ class Mosaic(BaseMixTransform):
         self.border = (-imgsz // 2, -imgsz // 2)  # width, height
         self.n = n
 
-    def get_indexes(self, buffer=True):
+    def get_indexes(self, buffer=False): # MB: change buffer to True to use as default settings from ultralytics
         """Return a list of random indexes from the dataset."""
         if buffer:  # select images from buffer
             return random.choices(list(self.dataset.buffer), k=self.n - 1)
