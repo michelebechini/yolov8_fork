@@ -15,6 +15,7 @@ from ..utils.instance import Instances
 from ..utils.metrics import bbox_ioa
 from ..utils.ops import segment2box
 from .utils import polygons2masks, polygons2masks_overlap
+from .custom_noise import Sensor_VIS, sensor_noise
 
 POSE_FLIPLR_INDEX = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
 
@@ -533,6 +534,36 @@ class RandomFlip:
         labels['img'] = np.ascontiguousarray(img)
         labels['instances'] = instances
         return labels
+    
+# new class for noise derived from sensor modeling
+class SensorNoise:
+
+    def __init__(self, p=0.5) -> None:
+        
+        assert 0 <= p <= 1.0
+
+        self.p = p
+        self.sensor = Sensor_VIS(G=20, is_RGB=False)
+        
+
+    def __call__(self, labels):
+        """Resize image and padding for detection, instance segmentation, pose."""
+        img = labels['img']
+        instances = labels.pop('instances')
+        instances.convert_bbox(format='xywh')
+        h, w = img.shape[:2]
+        h = 1 if instances.normalized else h
+        w = 1 if instances.normalized else w
+
+        # Apply sensor noise
+        if random.random() < self.p:
+            self.sensor = Sensor_VIS(G=np.random.randint(20, 40), is_RGB=False)
+            self.sensor.noise_parameters(read_mean=np.random.randint(20, 40) * self.sensor.G)
+            img = sensor_noise(image=img, sensor=self.sensor)
+
+        labels['img'] = np.ascontiguousarray(img)
+        labels['instances'] = instances
+        return labels
 
 
 class LetterBox:
@@ -654,12 +685,12 @@ class Albumentations:
 
             check_version(A.__version__, '1.0.3', hard=True)  # version requirement
 
-            T_always_app = [
-            #   A.GaussNoise(var_limit=(0.0021*255, 0.0023*255), mean=0, per_channel=False, always_apply=True),
-              A.GaussianBlur(blur_limit=(3, 7), sigma_limit=(10, 255), always_apply=True),
-              A.GaussNoise(var_limit=(0.1*255, 1.0*255), mean=0, per_channel=True, always_apply=True)
-            ]
-            self.transform_aa = A.Compose(T_always_app)
+            # T_always_app = [
+            # #   A.GaussNoise(var_limit=(0.0021*255, 0.0023*255), mean=0, per_channel=False, always_apply=True),
+            #   A.GaussianBlur(blur_limit=(3, 7), sigma_limit=(10, 255), always_apply=True),
+            #   A.GaussNoise(var_limit=(0.1*255, 1.0*255), mean=0, per_channel=True, always_apply=True)
+            # ]
+            # self.transform_aa = A.Compose(T_always_app)
 
             T = [
                 A.Blur(p=0.01),
@@ -686,9 +717,9 @@ class Albumentations:
             labels['instances'].normalize(*im.shape[:2][::-1])
             bboxes = labels['instances'].bboxes
             # TODO: add supports of segments and keypoints
-            if self.transform_aa:
-                speed_img = self.transform_aa(image=im)  # transformed
-                im = speed_img['image']
+            # if self.transform_aa:
+            #     speed_img = self.transform_aa(image=im)  # transformed
+            #     im = speed_img['image']
             if self.transform and random.random() < self.p:
                 new = self.transform(image=im, bboxes=bboxes, class_labels=cls)  # transformed
                 if len(new['class_labels']) > 0:  # skip update if no bbox in new im
@@ -795,6 +826,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
     return Compose([
         pre_transform,
         MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
+        SensorNoise(p=1.0),
         Albumentations(p=1.0),
         RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
         RandomFlip(direction='vertical', p=hyp.flipud),
