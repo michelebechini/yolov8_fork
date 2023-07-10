@@ -443,7 +443,7 @@ class Boxes(BaseTensor):
     @property
     def boxes(self):
         """Return the raw bboxes tensor (deprecated)."""
-        LOGGER.warning("WARNING ⚠️ 'Boxes.boxes' is deprecated. Use 'Boxes.data' instead.")
+        # LOGGER.warning("WARNING ⚠️ 'Boxes.boxes' is deprecated. Use 'Boxes.data' instead.")
         return self.data
 
 
