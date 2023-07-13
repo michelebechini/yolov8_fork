@@ -12,7 +12,7 @@ def get_image_bit_depth(image):
     return bit_depth
 
 
-def apply_random_flare(image):
+def apply_random_flare(image, char_dim=None, roi=None):
 
     bit_depth = get_image_bit_depth(image)
 
@@ -29,10 +29,18 @@ def apply_random_flare(image):
         flag_GRAYtoRGB = True
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
-    # get flare center point
-    flare_center = get_flare_center(image, thresh=240)
+    if roi is None:
+        roi=np.array([0., 0., image.shape[1], image.shape[0]])
+        img_roi_cropped = image.copy()
+    else:
+        img_roi_cropped = image[int(roi[1]):int(roi[3]), int(roi[0]):int(roi[2])]
 
+    # get flare center point
+    flare_center = get_flare_center(img_roi_cropped, thresh=240)
+    
     if not np.isnan(flare_center).any():
+
+        flare_center = flare_center + roi[:2]
 
         # normalize flare center coordinate
         center_norm_x = flare_center[0]/image.shape[1]
@@ -43,9 +51,12 @@ def apply_random_flare(image):
         x_max = np.min([1, center_norm_x+0.01])
         y_max = np.min([1, center_norm_y+0.01])
 
-        img_diag_size = np.hypot(image.shape[0], image.shape[1])
-        radius_limit_lower = int(img_diag_size*0.05)
-        radius_limit_upper = int(img_diag_size*0.35)
+        if char_dim is None:
+            diag_size = np.hypot(image.shape[0], image.shape[1])
+        else:
+            diag_size = char_dim
+        radius_limit_lower = int(diag_size*0.05)
+        radius_limit_upper = int(diag_size*0.35)
 
         # apply random flare
         transf_flare = Alb.RandomSunFlare(

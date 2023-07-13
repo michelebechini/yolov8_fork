@@ -553,9 +553,20 @@ class RandomNoises:
         h = 1 if instances.normalized else h
         w = 1 if instances.normalized else w
 
+        instances.convert_bbox(format='xyxy')
+        bbox_xyxy_norm = instances.bboxes[0]
+        bbox_xmin = bbox_xyxy_norm[0] * img.shape[1]
+        bbox_ymin = bbox_xyxy_norm[1] * img.shape[0]
+        bbox_xmax = bbox_xyxy_norm[2] * img.shape[1]
+        bbox_ymax = bbox_xyxy_norm[3] * img.shape[0]
+
+        bbox_diag = np.hypot(bbox_xmax-bbox_xmin, bbox_ymax-bbox_ymin)
+
+        roi_label = np.array([bbox_xmin, bbox_ymin, bbox_xmax, bbox_ymax])
+
         # Apply RandomFlare Noise
         if random.random() < self.p:
-            img = apply_random_flare(img)
+            img = apply_random_flare(img, char_dim=bbox_diag, roi=roi_label)
         
         labels['img'] = np.ascontiguousarray(img)
         labels['instances'] = instances
