@@ -6,3 +6,28 @@ This txt file will be used to save notes.
 - to return to the old version of mosaic augmentation images modify the buffer to False in augment.py 
   in get_indexes() header (line 141) such that the images are randomly selected from the full dataset
   and not only from the buffer
+
+
+- AUGMENTATION TESTS
+
+1) standard augmentations (mosaic, random blur, random gaussian noise, random brightness)
+      -> 20230622_speed_pose_yolov8s_mixed_imgs_noise
+      (mosaico applicato al 100% delle immagini, come random blur e random gaussian noise, random bright con probabilità del 50%)
+
+2) As in Case 1, but with addition of sensor noise (it incorporates blur and random noises only)
+      -> 20230710_speed_pose_yolov8s_mixed_imgs_sensor_noise
+      (sensor noise applicato al 100% delle immagini, mosaico 100%)
+
+3) As in case 2, but addiction of blooming, row_noise, RandomSunflare (modified) [ADDED to the code]
+      -> TODO
+      (sensor noise applicato al 100% delle immagini, mosaico 100%, il resto con 50% di probabilità)
+
+3bis) TBD As in case 3 but with dropout (modified)
+
+4) As in case 3, but addiction of style_augmentation (see git philipjackson/style-augmentation)
+      -> TODO
+      (sensor noise applicato al 100% delle immagini, mosaico 100%, il resto con 50% di probabilità)
+
+Compare the results and the score using the images in SPEED+ lightbox and sunlamp to measure metrics
+Include also a comparison using the synthetic images
+The images in the validation set are not augmented at the moment (maybe augment also them)
